@@ -72,6 +72,7 @@ fun ScannerScreen(
     hasApiKey: Boolean,
     enableLiveCamera: Boolean = true,
     onScan: (String) -> Unit,
+    onScanBarcode: (String) -> Unit,
     onTryDemo: () -> Unit,
     onSettings: () -> Unit,
     onHistory: () -> Unit,
@@ -429,6 +430,59 @@ fun ScannerScreen(
                         text = "Scan Label",
                         color = Color.Black,
                         fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Surface(
+                onClick = {
+                    if (!enableLiveCamera) {
+                        onScanBarcode("stubbed://local-capture.jpg")
+                        return@Surface
+                    }
+
+                    if (!hasCameraPermission) {
+                        permissionLauncher.launch(Manifest.permission.CAMERA)
+                        return@Surface
+                    }
+
+                    isCapturing = true
+                    cameraStatusMessage = null
+                    cameraController.capturePhoto(
+                        onSuccess = { capture ->
+                            isCapturing = false
+                            onScanBarcode(capture.absolutePath)
+                        },
+                        onError = { throwable ->
+                            isCapturing = false
+                            cameraStatusMessage = throwable.message ?: "Failed to capture barcode image."
+                        },
+                    )
+                },
+                color = Color.White.copy(alpha = 0.04f),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(AppTestTags.SCANNER_BARCODE_BUTTON),
+            ) {
+                Row(
+                    modifier = Modifier.padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CameraAlt,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.55f),
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Scan Barcode",
+                        color = Color.White.copy(alpha = 0.55f),
+                        fontSize = 12.sp,
                     )
                 }
             }

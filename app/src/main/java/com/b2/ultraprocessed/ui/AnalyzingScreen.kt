@@ -1,5 +1,6 @@
 package com.b2.ultraprocessed.ui
 
+import com.b2.ultraprocessed.analysis.FoodAnalysisPipeline
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -40,7 +41,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.b2.ultraprocessed.scan.LabelScanPipeline
 import com.b2.ultraprocessed.ui.theme.DarkBg
 import com.b2.ultraprocessed.ui.theme.Emerald400
 import com.b2.ultraprocessed.ui.theme.Emerald500
@@ -51,20 +51,36 @@ import kotlinx.coroutines.launch
 
 private data class Step(val text: String, val tag: String)
 
+enum class AnalysisMode {
+    LabelImage,
+    BarcodeImage,
+    DemoAsset,
+}
+
 private fun analysisSteps(
     modelName: String,
-    isDemoAsset: Boolean,
-    isDemoText: Boolean,
+    mode: AnalysisMode,
 ) = listOf(
     Step(
         when {
-            isDemoAsset -> "Loading sample image…"
-            isDemoText -> "Loading sample label text…"
+            mode == AnalysisMode.BarcodeImage -> "Reading barcode image…"
+            mode == AnalysisMode.DemoAsset -> "Loading sample image…"
             else -> "Reading label image…"
         },
-        if (isDemoAsset || isDemoText) "Demo" else "ML Kit",
+        when (mode) {
+            AnalysisMode.BarcodeImage -> "Barcode"
+            AnalysisMode.DemoAsset -> "Demo"
+            AnalysisMode.LabelImage -> "ML Kit"
+        },
     ),
-    Step("Cleaning ingredient text…", "Normalize"),
+    Step(
+        text = if (mode == AnalysisMode.BarcodeImage) "Looking up USDA product data…" else "Extracting ingredient text…",
+        tag = if (mode == AnalysisMode.BarcodeImage) "USDA" else "OCR",
+    ),
+    Step(
+        text = if (mode == AnalysisMode.BarcodeImage) "Extracting fallback OCR text if needed…" else "Normalizing ingredient text…",
+        tag = if (mode == AnalysisMode.BarcodeImage) "OCR" else "Normalize",
+    ),
     Step("Running NOVA-style rules…", "Rules"),
     Step("Preparing verdict…", modelName),
 )
@@ -74,18 +90,16 @@ fun AnalyzingScreen(
     scanSessionId: Int,
     imagePath: String?,
     demoAssetPath: String?,
-    demoRawIngredientText: String?,
+    mode: AnalysisMode,
     minimumDisplayMillis: Long = 2600L,
     modelName: String,
     onSuccess: (ScanResultUi) -> Unit,
     onFailure: (String) -> Unit,
 ) {
     val context = LocalContext.current
-    val pipeline = remember(context) { LabelScanPipeline.create(context) }
-    val isDemoAsset = demoAssetPath != null
-    val isDemoText = demoRawIngredientText != null
-    val steps = remember(modelName, isDemoAsset, isDemoText) {
-        analysisSteps(modelName, isDemoAsset, isDemoText)
+    val pipeline = remember(context) { FoodAnalysisPipeline.create(context) }
+    val steps = remember(modelName, mode) {
+        analysisSteps(modelName, mode)
     }
     var currentStep by remember { mutableIntStateOf(0) }
     var progress by remember { mutableFloatStateOf(0f) }
@@ -107,12 +121,12 @@ fun AnalyzingScreen(
         val startAt = System.currentTimeMillis()
         val outcome = runCatching {
             when {
-                demoAssetPath != null ->
-                    pipeline.analyzeDemoAsset(context, demoAssetPath).getOrThrow()
-                demoRawIngredientText != null ->
-                    pipeline.analyzeDemoText(demoRawIngredientText).getOrThrow()
-                imagePath != null ->
-                    pipeline.analyzeImage(imagePath).getOrThrow()
+                mode == AnalysisMode.DemoAsset && demoAssetPath != null ->
+                    pipeline.analyzeFromDemoAsset(context, demoAssetPath).getOrThrow().scanResult
+                mode == AnalysisMode.BarcodeImage && imagePath != null ->
+                    pipeline.analyzeFromBarcodeImage(imagePath).getOrThrow().scanResult
+                mode == AnalysisMode.LabelImage && imagePath != null ->
+                    pipeline.analyzeFromImage(imagePath).getOrThrow().scanResult
                 else ->
                     throw IllegalStateException("No scan input.")
             }

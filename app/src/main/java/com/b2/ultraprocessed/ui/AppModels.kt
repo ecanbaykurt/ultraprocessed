@@ -21,6 +21,8 @@ data class ScanResultUi(
     val allIngredients: List<String>,
     val engineLabel: String,
     val confidence: Float = 0f,
+    val sourceLabel: String = "OCR",
+    val warnings: List<String> = emptyList(),
     /** Local file path to the image that was analyzed (camera, gallery, or demo cache). */
     val labelImagePath: String? = null,
 )

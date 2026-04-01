@@ -38,6 +38,7 @@ fun UltraProcessedApp(
     var lastCapturedPhotoPath by rememberSaveable { mutableStateOf<String?>(null) }
     var scanSessionId by remember { mutableIntStateOf(0) }
     var demoAssetPath by remember { mutableStateOf<String?>(null) }
+    var analysisMode by remember { mutableStateOf(AnalysisMode.LabelImage) }
     var showDemoPicker by remember { mutableStateOf(false) }
     var analysisErrorMessage by remember { mutableStateOf("") }
     var currentScanResult by remember { mutableStateOf<ScanResultUi?>(null) }
@@ -76,6 +77,14 @@ fun UltraProcessedApp(
                         onScan = { path ->
                             lastCapturedPhotoPath = path
                             demoAssetPath = null
+                            analysisMode = AnalysisMode.LabelImage
+                            scanSessionId++
+                            destination = AppDestination.Analyzing
+                        },
+                        onScanBarcode = { path ->
+                            lastCapturedPhotoPath = path
+                            demoAssetPath = null
+                            analysisMode = AnalysisMode.BarcodeImage
                             scanSessionId++
                             destination = AppDestination.Analyzing
                         },
@@ -88,7 +97,7 @@ fun UltraProcessedApp(
                         scanSessionId = scanSessionId,
                         imagePath = lastCapturedPhotoPath,
                         demoAssetPath = demoAssetPath,
-                        demoRawIngredientText = null,
+                        mode = analysisMode,
                         minimumDisplayMillis = timingConfig.analysisMinimumDisplayMillis,
                         modelName = StubUiData.modelOptions
                             .firstOrNull { it.id == selectedModelId }
@@ -163,6 +172,7 @@ fun UltraProcessedApp(
                         showDemoPicker = false
                         demoAssetPath = sample.assetPath
                         lastCapturedPhotoPath = null
+                        analysisMode = AnalysisMode.DemoAsset
                         scanSessionId++
                         destination = AppDestination.Analyzing
                     },

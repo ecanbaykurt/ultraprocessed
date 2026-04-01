@@ -6,9 +6,13 @@ object ClassificationUiMapper {
     fun toScanResultUi(
         classification: ClassificationResult,
         normalizedIngredientLine: String,
+        productNameOverride: String? = null,
+        sourceLabel: String = "OCR",
+        warnings: List<String> = emptyList(),
         labelImagePath: String? = null,
     ): ScanResultUi {
-        val productName = deriveProductTitle(normalizedIngredientLine)
+        val productName = productNameOverride?.takeIf { it.isNotBlank() }
+            ?: deriveProductTitle(normalizedIngredientLine)
         val problemIngredients = classification.highlightTerms.map { marker ->
             val isPackagingCue = marker.startsWith("packaging:")
             val displayName = if (isPackagingCue) {
@@ -41,6 +45,8 @@ object ClassificationUiMapper {
             allIngredients = allIngredients,
             engineLabel = engineLabel,
             confidence = classification.confidence,
+            sourceLabel = sourceLabel,
+            warnings = warnings,
             labelImagePath = labelImagePath,
         )
     }

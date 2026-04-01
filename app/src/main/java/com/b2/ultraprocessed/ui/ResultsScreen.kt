@@ -101,6 +101,19 @@ fun ResultsScreen(
                 fontSize = 11.sp,
                 letterSpacing = 0.3.sp,
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            Surface(
+                color = Color.White.copy(alpha = 0.08f),
+                shape = RoundedCornerShape(100.dp),
+            ) {
+                Text(
+                    text = "Source: ${result.sourceLabel}",
+                    color = Color.White.copy(alpha = 0.72f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
             ScannedLabelPhotoSection(imagePath = result.labelImagePath)
@@ -183,6 +196,39 @@ fun ResultsScreen(
                 fontSize = 15.sp,
                 lineHeight = 22.sp,
             )
+
+            if (result.warnings.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Surface(
+                    color = Color(0x16F59E0B),
+                    shape = RoundedCornerShape(14.dp),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        Color(0x44F59E0B),
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "DATA WARNING",
+                            color = Color(0xFFFBBF24),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        result.warnings.forEach { warning ->
+                            Text(
+                                text = warning,
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 12.sp,
+                                lineHeight = 17.sp,
+                                modifier = Modifier.padding(bottom = 4.dp),
+                            )
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(22.dp))
 

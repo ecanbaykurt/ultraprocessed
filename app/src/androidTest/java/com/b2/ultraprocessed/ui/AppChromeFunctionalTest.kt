@@ -19,6 +19,7 @@ class AppChromeFunctionalTest {
     fun scannerScreen_rendersSharedHeaderAndFooter_andRoutesHeaderActions() {
         var historyClicks = 0
         var settingsClicks = 0
+        var barcodeClicks = 0
 
         composeRule.setContent {
             UltraProcessedTheme {
@@ -26,6 +27,7 @@ class AppChromeFunctionalTest {
                     hasApiKey = false,
                     enableLiveCamera = false,
                     onScan = {},
+                    onScanBarcode = { barcodeClicks += 1 },
                     onTryDemo = {},
                     onSettings = { settingsClicks += 1 },
                     onHistory = { historyClicks += 1 },
@@ -38,10 +40,12 @@ class AppChromeFunctionalTest {
         composeRule.onNodeWithText("Live scanner").assertIsDisplayed()
         composeRule.onNodeWithTag(AppTestTags.HEADER_ACTION_HISTORY).performClick()
         composeRule.onNodeWithTag(AppTestTags.HEADER_ACTION_SETTINGS).performClick()
+        composeRule.onNodeWithTag(AppTestTags.SCANNER_BARCODE_BUTTON).performClick()
 
         composeRule.runOnIdle {
             assertEquals(1, historyClicks)
             assertEquals(1, settingsClicks)
+            assertEquals(1, barcodeClicks)
         }
     }
 
