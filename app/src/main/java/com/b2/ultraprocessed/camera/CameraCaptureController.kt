@@ -29,6 +29,7 @@ class CameraCaptureController(
     fun bind(
         previewView: PreviewView,
         lifecycleOwner: LifecycleOwner,
+        onBound: (() -> Unit)? = null,
     ) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener(
@@ -51,13 +52,16 @@ class CameraCaptureController(
                     preview,
                     imageCapture,
                 )
+                onBound?.invoke()
             },
             ContextCompat.getMainExecutor(context),
         )
     }
 
     fun unbind() {
+        imageCapture = null
         cameraProvider?.unbindAll()
+        cameraProvider = null
     }
 
     fun capturePhoto(

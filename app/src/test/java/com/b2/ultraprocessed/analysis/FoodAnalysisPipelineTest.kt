@@ -51,6 +51,40 @@ class FoodAnalysisPipelineTest {
     }
 
     @Test
+    fun analyzeFromBarcode_withRawCode_samePathAsImageBarcodeFlow() = runTest {
+        val pipeline = buildPipeline(
+            ocrPipeline = OcrPipeline { OcrResult.Failure("unused") },
+            barcodeScanner = BarcodeScanner { BarcodeResult.Failure("unused") },
+            usdaRepository = UsdaRepository(
+                object : UsdaApiDataSource {
+                    override suspend fun searchFoods(query: String, pageSize: Int): List<UsdaSearchFood> = listOf(
+                        UsdaSearchFood(
+                            fdcId = 100L,
+                            description = "Frozen Cheeseburger",
+                            dataType = "Branded",
+                            brandOwner = "Great Value",
+                            gtinUpc = "078742195760",
+                            ingredients = "BEEF, BUN, ARTIFICIAL FLAVOR",
+                        ),
+                    )
+
+                    override suspend fun fetchFoodDetail(fdcId: Long): UsdaFoodDetail? = UsdaFoodDetail(
+                        fdcId = 100L,
+                        description = "Frozen Cheeseburger",
+                        brandOwner = "Great Value",
+                        gtinUpc = "078742195760",
+                        ingredients = "BEEF, BUN, ARTIFICIAL FLAVOR",
+                    )
+                },
+            ),
+        )
+
+        val result = pipeline.analyzeFromBarcode("078742195760", sourceImagePath = null).getOrThrow()
+        assertEquals(AnalysisSourceType.Barcode, result.sourceType)
+        assertEquals("USDA", result.scanResult.sourceLabel)
+    }
+
+    @Test
     fun analyzeFromBarcode_fallsBackToOcr_whenUsdaMisses() = runTest {
         val pipeline = buildPipeline(
             ocrPipeline = OcrPipeline {

@@ -36,6 +36,7 @@ fun UltraProcessedApp(
         mutableStateOf(StubUiData.modelOptions.first().id)
     }
     var lastCapturedPhotoPath by rememberSaveable { mutableStateOf<String?>(null) }
+    var barcodeValue by rememberSaveable { mutableStateOf<String?>(null) }
     var scanSessionId by remember { mutableIntStateOf(0) }
     var demoAssetPath by remember { mutableStateOf<String?>(null) }
     var analysisMode by remember { mutableStateOf(AnalysisMode.LabelImage) }
@@ -76,15 +77,17 @@ fun UltraProcessedApp(
                         enableLiveCamera = enableLiveCamera,
                         onScan = { path ->
                             lastCapturedPhotoPath = path
+                            barcodeValue = null
                             demoAssetPath = null
                             analysisMode = AnalysisMode.LabelImage
                             scanSessionId++
                             destination = AppDestination.Analyzing
                         },
-                        onScanBarcode = { path ->
-                            lastCapturedPhotoPath = path
+                        onBarcodeScanned = { code ->
+                            lastCapturedPhotoPath = null
+                            barcodeValue = code
                             demoAssetPath = null
-                            analysisMode = AnalysisMode.BarcodeImage
+                            analysisMode = AnalysisMode.BarcodeValue
                             scanSessionId++
                             destination = AppDestination.Analyzing
                         },
@@ -96,6 +99,7 @@ fun UltraProcessedApp(
                     AppDestination.Analyzing -> AnalyzingScreen(
                         scanSessionId = scanSessionId,
                         imagePath = lastCapturedPhotoPath,
+                        barcodeValue = barcodeValue,
                         demoAssetPath = demoAssetPath,
                         mode = analysisMode,
                         minimumDisplayMillis = timingConfig.analysisMinimumDisplayMillis,
@@ -105,6 +109,7 @@ fun UltraProcessedApp(
                             ?: selectedModelId,
                         onSuccess = { result ->
                             currentScanResult = result
+                            barcodeValue = null
                         historyItems.add(
                             0,
                             result.toHistoryItem(
@@ -115,6 +120,7 @@ fun UltraProcessedApp(
                         },
                         onFailure = { message ->
                             analysisErrorMessage = message
+                            barcodeValue = null
                             destination = AppDestination.AnalysisError
                         },
                     )

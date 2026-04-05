@@ -27,7 +27,7 @@ class AppChromeFunctionalTest {
                     hasApiKey = false,
                     enableLiveCamera = false,
                     onScan = {},
-                    onScanBarcode = { barcodeClicks += 1 },
+                    onBarcodeScanned = { barcodeClicks += 1 },
                     onTryDemo = {},
                     onSettings = { settingsClicks += 1 },
                     onHistory = { historyClicks += 1 },

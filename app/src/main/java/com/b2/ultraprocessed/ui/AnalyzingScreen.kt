@@ -52,8 +52,12 @@ import kotlinx.coroutines.launch
 private data class Step(val text: String, val tag: String)
 
 enum class AnalysisMode {
+    /** Photo of ingredient label → OCR → normalize → classify (same downstream as barcode). */
     LabelImage,
+    /** Photo still → read barcode from image → USDA → classify. */
     BarcodeImage,
+    /** Live (or stub) barcode value → USDA → normalize → classify — parallel entry to OCR path. */
+    BarcodeValue,
     DemoAsset,
 }
 
@@ -64,21 +68,30 @@ private fun analysisSteps(
     Step(
         when {
             mode == AnalysisMode.BarcodeImage -> "Reading barcode image…"
+            mode == AnalysisMode.BarcodeValue -> "Barcode captured…"
             mode == AnalysisMode.DemoAsset -> "Loading sample image…"
             else -> "Reading label image…"
         },
         when (mode) {
             AnalysisMode.BarcodeImage -> "Barcode"
+            AnalysisMode.BarcodeValue -> "ML Kit"
             AnalysisMode.DemoAsset -> "Demo"
             AnalysisMode.LabelImage -> "ML Kit"
         },
     ),
     Step(
-        text = if (mode == AnalysisMode.BarcodeImage) "Looking up USDA product data…" else "Extracting ingredient text…",
-        tag = if (mode == AnalysisMode.BarcodeImage) "USDA" else "OCR",
+        text = when (mode) {
+            AnalysisMode.BarcodeImage, AnalysisMode.BarcodeValue -> "Looking up USDA product data…"
+            else -> "Extracting ingredient text…"
+        },
+        tag = if (mode == AnalysisMode.LabelImage || mode == AnalysisMode.DemoAsset) "OCR" else "USDA",
     ),
     Step(
-        text = if (mode == AnalysisMode.BarcodeImage) "Extracting fallback OCR text if needed…" else "Normalizing ingredient text…",
+        text = when (mode) {
+            AnalysisMode.BarcodeImage -> "Extracting fallback OCR text if needed…"
+            AnalysisMode.BarcodeValue -> "Preparing ingredient text…"
+            else -> "Normalizing ingredient text…"
+        },
         tag = if (mode == AnalysisMode.BarcodeImage) "OCR" else "Normalize",
     ),
     Step("Running NOVA-style rules…", "Rules"),
@@ -89,6 +102,7 @@ private fun analysisSteps(
 fun AnalyzingScreen(
     scanSessionId: Int,
     imagePath: String?,
+    barcodeValue: String?,
     demoAssetPath: String?,
     mode: AnalysisMode,
     minimumDisplayMillis: Long = 2600L,
@@ -123,6 +137,11 @@ fun AnalyzingScreen(
             when {
                 mode == AnalysisMode.DemoAsset && demoAssetPath != null ->
                     pipeline.analyzeFromDemoAsset(context, demoAssetPath).getOrThrow().scanResult
+                mode == AnalysisMode.BarcodeValue && !barcodeValue.isNullOrBlank() ->
+                    pipeline.analyzeFromBarcode(
+                        barcodeCode = barcodeValue.trim(),
+                        sourceImagePath = null,
+                    ).getOrThrow().scanResult
                 mode == AnalysisMode.BarcodeImage && imagePath != null ->
                     pipeline.analyzeFromBarcodeImage(imagePath).getOrThrow().scanResult
                 mode == AnalysisMode.LabelImage && imagePath != null ->
